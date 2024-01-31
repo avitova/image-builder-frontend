@@ -20,9 +20,11 @@ import {
 import { PlusCircleIcon, SearchIcon } from '@patternfly/react-icons';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import debounce from 'lodash/debounce';
+import { useDispatch } from 'react-redux';
 
 import BlueprintCard from './BlueprintCard';
 
+import { imageBuilderApi } from '../../store/enhancedImageBuilderApi';
 import {
   useGetBlueprintsQuery,
   BlueprintItem,
@@ -56,9 +58,11 @@ const BlueprintsSidebar = ({
   const [blueprintsSearchQuery, setBlueprintsSearchQuery] = useState<
     string | undefined
   >();
+  const dispatch = useDispatch();
   const debouncedSearch = useCallback(
     debounce((filter) => {
       setBlueprintsSearchQuery(filter.length > 0 ? filter : undefined);
+      setPageBlueprint(1);
     }, 300),
     [setBlueprintsSearchQuery]
   );
@@ -67,10 +71,39 @@ const BlueprintsSidebar = ({
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
-  const { data: blueprintsData, isLoading } = useGetBlueprintsQuery({
+  const [pageBlueprint, setPageBlueprint] = useState(1);
+  const perPageBlueprint = 4;
+  const {
+    data: blueprintsData,
+    isLoading,
+    isFetching,
+  } = useGetBlueprintsQuery({
     search: blueprintsSearchQuery,
+    limit: perPageBlueprint,
+    offset: perPageBlueprint * (pageBlueprint - 1),
   });
-  const blueprints = blueprintsData?.data;
+  React.useEffect(() => {
+    if (pageBlueprint <= 1) {
+      return;
+    }
+    const sidebar = document.querySelector('.pf-v5-c-sidebar__panel');
+    if (sidebar) {
+      const onScroll = () => {
+        const scrolledToBottom =
+          // threshold (2) to solve rounding error
+          sidebar.scrollTop + sidebar.clientHeight + 2 >= sidebar.scrollHeight;
+        if (scrolledToBottom && !isFetching) {
+          setPageBlueprint(pageBlueprint + 1);
+        }
+      };
+
+      sidebar.addEventListener('scroll', onScroll);
+
+      return function () {
+        sidebar.removeEventListener('scroll', onScroll);
+      };
+    }
+  }, [pageBlueprint, isFetching]);
 
   const blueprintsTotal = blueprintsData?.meta?.count || 0;
 
@@ -139,7 +172,7 @@ const BlueprintsSidebar = ({
           />
         )}
         {blueprintsTotal > 0 &&
-          blueprints?.map((blueprint: BlueprintItem) => (
+          blueprintsData?.data.map((blueprint: BlueprintItem) => (
             <StackItem key={blueprint.id}>
               <BlueprintCard
                 blueprint={blueprint}
@@ -148,6 +181,18 @@ const BlueprintsSidebar = ({
               />
             </StackItem>
           ))}
+        {pageBlueprint === 1 &&
+          blueprintsTotal > (blueprintsData?.data.length || 0) && (
+            <Button
+              isLoading={isFetching}
+              onClick={() => {
+                setPageBlueprint((n) => n + 1);
+              }}
+              value="loader"
+            >
+              View more
+            </Button>
+          )}
       </Stack>
     </>
   );

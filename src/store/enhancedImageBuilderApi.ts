@@ -9,6 +9,21 @@ const enhancedApi = imageBuilderApi.enhanceEndpoints({
       providesTags: () => {
         return [{ type: 'Blueprints' }];
       },
+      serializeQueryArgs: ({ endpointName, queryArgs }) => {
+        return `${endpointName}("${queryArgs.search}")`;
+      },
+      merge: (currentCache, newItems, { arg }) => {
+        currentCache.data.push(...newItems.data);
+      },
+      forceRefetch({ currentArg, previousArg }) {
+        if (!previousArg) {
+          return true;
+        }
+        return (
+          currentArg?.offset !== previousArg?.offset ||
+          currentArg?.search !== previousArg?.search
+        );
+      },
     },
     getBlueprintComposes: {
       providesTags: () => {
