@@ -422,3 +422,12 @@ export function useDetailsValidation(): StepValidation {
     disabledNext: !!nameError || !descriptionValid || uniqueName !== true,
   };
 }
+
+export function useCaCertsValidation(): StepValidation {
+  return {
+    errors: {
+      certificates: '',
+    },
+    disabledNext: false,
+  };
+}

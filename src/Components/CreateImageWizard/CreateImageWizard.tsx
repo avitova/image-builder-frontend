@@ -29,6 +29,7 @@ import ReviewStep from './steps/Review';
 import ReviewWizardFooter from './steps/Review/Footer/Footer';
 import ServicesStep from './steps/Services';
 import SnapshotStep from './steps/Snapshot';
+import CACertificatesStep from './steps/CACertificates';
 import Aws from './steps/TargetEnvironment/Aws';
 import Azure from './steps/TargetEnvironment/Azure';
 import Gcp from './steps/TargetEnvironment/Gcp';
@@ -47,6 +48,7 @@ import {
   useTimezoneValidation,
   useFirewallValidation,
   useServicesValidation,
+  useCaCertsValidation,
 } from './utilities/useValidation';
 import {
   isAwsAccountIdValid,
@@ -152,6 +154,7 @@ const CreateImageWizard = ({ isEdit }: CreateImageWizardProps) => {
   const isKernelEnabled = useFlag('image-builder.kernel.enabled');
   const isFirewallEnabled = useFlag('image-builder.firewall.enabled');
   const isServicesStepEnabled = useFlag('image-builder.services.enabled');
+  const isCaCertsEnabled = useFlag('image-builder.certificates.enabled');
 
   // Remove this and all fallthrough logic when snapshotting is enabled in Prod-stable
   // =========================TO REMOVE=======================
@@ -262,6 +265,8 @@ const CreateImageWizard = ({ isEdit }: CreateImageWizardProps) => {
   const detailsValidation = useDetailsValidation();
   // Users
   const usersValidation = useUsersValidation();
+  // Users
+  const caCertsValidation = useCaCertsValidation();
 
   let startIndex = 1; // default index
   if (isEdit) {
@@ -492,6 +497,19 @@ const CreateImageWizard = ({ isEdit }: CreateImageWizardProps) => {
                 }
               >
                 <PackagesStep />
+              </WizardStep>,
+              <WizardStep
+                name="CA certificates"
+                id="wizard-ca-certificates"
+                key="wizard-ca-certificates"
+                isHidden={!isCaCertsEnabled}
+                isDisabled={caCertsValidation.disabledNext}
+                footer={
+                  <CustomWizardFooter disableNext={caCertsValidation.disabledNext} optional={true}
+                  />
+                }
+              >
+                <CACertificatesStep />
               </WizardStep>,
               <WizardStep
                 name="Users"
