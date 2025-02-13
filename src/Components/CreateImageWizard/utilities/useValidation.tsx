@@ -25,6 +25,8 @@ import {
   selectNtpServers,
   selectFirewall,
   selectServices,
+  selectCACerts,
+  CaCertFile,
 } from '../../../store/wizardSlice';
 import {
   getDuplicateMountPoints,
@@ -424,10 +426,17 @@ export function useDetailsValidation(): StepValidation {
 }
 
 export function useCaCertsValidation(): StepValidation {
+  const certs = useAppSelector(selectCACerts);
+  const errors: { [key: string]: string } = {};
+
+
+  // TODO: validate certificates
+  certs.forEach((cert: CaCertFile, index: number) => {
+  });
+
+  console.log(errors);
   return {
-    errors: {
-      certificates: '',
-    },
-    disabledNext: false,
+    errors,
+    disabledNext: Object.keys(errors).length > 0,
   };
 }

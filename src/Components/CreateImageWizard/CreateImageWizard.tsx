@@ -154,7 +154,7 @@ const CreateImageWizard = ({ isEdit }: CreateImageWizardProps) => {
   const isKernelEnabled = useFlag('image-builder.kernel.enabled');
   const isFirewallEnabled = useFlag('image-builder.firewall.enabled');
   const isServicesStepEnabled = useFlag('image-builder.services.enabled');
-  const isCaCertsEnabled = useFlag('image-builder.certificates.enabled');
+  const isCaCertsEnabled = true;
 
   // Remove this and all fallthrough logic when snapshotting is enabled in Prod-stable
   // =========================TO REMOVE=======================
