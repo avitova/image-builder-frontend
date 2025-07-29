@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import path from 'path';
 
@@ -8,8 +8,6 @@ import {
   ClipboardCopy,
   List,
   ListItem,
-  Modal,
-  ModalVariant,
   Popover,
   PopoverPosition,
   Skeleton,
@@ -21,14 +19,13 @@ import {
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useChrome } from '@redhat-cloud-services/frontend-components/useChrome';
 import { ChromeUser } from '@redhat-cloud-services/types';
-import { useLoadModule, useScalprum } from '@scalprum/react-core';
+import { useScalprum } from '@scalprum/react-core';
 import cockpit from 'cockpit';
 import { useNavigate } from 'react-router-dom';
 
 import {
   AMPLITUDE_MODULE_NAME,
   FILE_SYSTEM_CUSTOMIZATION_URL,
-  MODAL_ANCHOR,
   SEARCH_INPUT,
 } from '../../constants';
 import {
@@ -49,12 +46,10 @@ import {
 } from '../../store/imageBuilderApi';
 import {
   isAwss3UploadStatus,
-  isAwsUploadRequestOptions,
-  isGcpUploadRequestOptions,
   isOciUploadStatus,
 } from '../../store/typeGuards';
 import { resolveRelPath } from '../../Utilities/path';
-import useProvisioningPermissions from '../../Utilities/useProvisioningPermissions';
+import { AWSLaunch } from '../Launch/AWSLaunch';
 
 type CloudInstancePropTypes = {
   compose: ComposesResponseItem;
@@ -106,23 +101,7 @@ const ProvisioningLink = ({
       setUserData(data);
     })();
   }, [auth]);
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [exposedScalprumModule, error] = useLoadModule(
-    {
-      scope: 'provisioning',
-      module: './ProvisioningWizard',
-    },
-    {},
-  );
-
-  const { permissions, isLoading: isLoadingPermission } =
-    useProvisioningPermissions();
-
-  // Recomputing this value on every render made the modal crash. Using a state
-  // helps avoiding this situation as the value is only set the first time.
-  const [appendTo] = useState(
-    document.querySelector(MODAL_ANCHOR) as HTMLElement,
-  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const selectedBlueprintId = useAppSelector(selectSelectedBlueprintId);
   const blueprintSearchInput =
@@ -139,34 +118,15 @@ const ProvisioningLink = ({
   );
 
   if (
-    error ||
-    !exposedScalprumModule ||
     composeStatus?.image_status.status !== 'success'
   ) {
     return <DisabledProvisioningLink />;
   }
 
-  const ProvisioningWizard = exposedScalprumModule.default;
   const provider = getImageProvider(compose);
-
-  const options = compose.request.image_requests[0].upload_request.options;
-
-  let sourceIds = undefined;
-  let accountIds = undefined;
-
-  if (isGcpUploadRequestOptions(options)) {
-    accountIds = options.share_with_accounts;
-  }
-
-  if (isAwsUploadRequestOptions(options)) {
-    accountIds = options.share_with_accounts;
-    sourceIds = options.share_with_sources;
-  }
 
   const btn = (
     <Button
-      spinnerAriaLabel="Loading launch"
-      isLoading={isLoadingPermission}
       variant="link"
       isInline
       onClick={() => {
@@ -177,7 +137,7 @@ const ProvisioningLink = ({
           account_id: userData?.identity.internal?.account_id || 'Not found',
         });
 
-        setWizardOpen(true);
+        setIsModalOpen(true);
       }}
     >
       Launch
@@ -197,38 +157,20 @@ const ProvisioningLink = ({
     </Popover>
   );
 
+  const handleModalToggle = (_event: KeyboardEvent | React.MouseEvent) => {
+    setIsModalOpen(!isModalOpen);
+  };
+
+
   return (
     <>
-      <Suspense fallback="loading...">
         {selectedBlueprintVersion &&
         compose.blueprint_version !== selectedBlueprintVersion
           ? buttonWithTooltip
           : btn}
-        {wizardOpen && (
-          <Modal
-            isOpen
-            appendTo={appendTo}
-            variant={ModalVariant.large}
-            aria-label="Open launch wizard"
-          >
-            <ProvisioningWizard
-              hasAccess={permissions[provider]}
-              onClose={() => setWizardOpen(false)}
-              image={{
-                name: compose.image_name || compose.id,
-                id: compose.id,
-                architecture: compose.request.image_requests[0].architecture,
-                provider: provider,
-                sourceIDs: sourceIds,
-                accountIDs: accountIds,
-                uploadOptions:
-                  compose.request.image_requests[0].upload_request.options,
-                uploadStatus: composeStatus.image_status.upload_status,
-              }}
-            />
-          </Modal>
-        )}
-      </Suspense>
+        {isModalOpen && provider === 'aws' && (
+          <AWSLaunch isOpen={isModalOpen} handleModalToggle={handleModalToggle} compose={compose} />
+      )}
     </>
   );
 };
@@ -245,7 +187,6 @@ const getImageProvider = (compose: ComposesResponseItem) => {
     case 'gcp':
       return 'gcp';
     default:
-      //TODO check with Provisioning: what if imageType is not 'aws', 'ami', or 'azure'?
       return 'aws';
   }
 };

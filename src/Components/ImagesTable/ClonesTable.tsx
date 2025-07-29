@@ -141,7 +141,6 @@ type ClonesTablePropTypes = {
 
 const ClonesTable = ({ compose }: ClonesTablePropTypes) => {
   const { data } = useGetComposeClonesQuery({ composeId: compose.id });
-
   return (
     <Table variant="compact" data-testid="clones-table">
       <Thead>
